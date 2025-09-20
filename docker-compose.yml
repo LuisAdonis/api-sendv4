@@ -1,0 +1,24 @@
+services:
+  app:
+    build: .
+    container_name: apisend
+    ports:
+      - "3213:3213"
+    restart: always
+    environment:
+      PORT: 3213
+      NODE_ENV: development
+      MONGODB_URI: "mongodb://sendapi12:sendapi12@192.168.123.40:27017/sendapi?authSource=admin"
+    depends_on:
+      - db
+  db:
+    image: mongo:latest
+    container_name: db-send
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: sendapi12
+      MONGO_INITDB_ROOT_PASSWORD: sendapi12
+    ports:
+      - "27017:27017"
+    volumes:
+      - /DATA/Send:/data/db

@@ -20,10 +20,12 @@ WORKDIR /app
 
 # Copiar solo las dependencias de producción
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production && npm cache clean --force
 
 # Copiar el código compilado desde el build
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/src/config ./dist/config
+
 
 # Exponer puerto
 EXPOSE 3000

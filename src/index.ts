@@ -9,6 +9,8 @@ import corsErrorHandler from './middleware/corsErrorHandler';
 import verifyToken from './middleware/verifyToken';
 import path from 'path';
 
+import userRoutes from './routes/usuario';
+
 
 import cityRoutes from './routes/ciudad';
 import storeRoutes from './routes/tienda';
@@ -50,6 +52,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/v1/city',cityPublicRoutes);
 app.use('/api/v1/store',storePublicRoutes);
 app.use('/api/v1/product',productPublicRoutes);
+app.use('/api/v1/users', userRoutes);
 
 app.use(verifyToken);
 app.use('/api/v1/store',storeRoutes);

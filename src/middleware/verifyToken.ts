@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { auth } from "../firebase";
-
-export default function verifyToken(req: Request, res: Response, next: NextFunction) {
+export interface AuthRequest extends Request {
+  user?: any;
+}
+export default function verifyToken(req: AuthRequest, res: Response, next: NextFunction) {
   const header = req.headers['authorization'];
   const token = header && header.split(' ')[1];
   if (!token) {
@@ -11,8 +13,8 @@ export default function verifyToken(req: Request, res: Response, next: NextFunct
   const payload = auth.verifyIdToken(token)
     .then((decodedToken) => {
       const uid = decodedToken.uid;
-      (req as any).user = decodedToken;
-      console.log(decodedToken.auth_time)
+      // (req as any).user = decodedToken;
+      req.user = decodedToken; 
       next();
     })
     .catch((error: any) => {

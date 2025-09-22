@@ -40,13 +40,13 @@ const tiendaSchema = new Schema<ITienda>(
   {
     nombre: { type: String, required: true },
     direccion: { type: String, required: true },
-    logo: { type: String },
+    logo: { type: String ,default:'none'},
     logo_banner: { type: String, default: 'none' },
     calificacion: { type: Number, default: 1.2 },
     latitud: { type: Number, required: true },
     longitud: { type: Number, required: true },
-    telefono: { type: String, required: true },
-    email: { type: String, required: true },
+    telefono: { type: String, required: true , unique: true },
+    email: { type: String, required: true, unique: true },
     estado: {
       type: String,
       enum: ['activa', 'cerrada', 'suspendida', 'eliminada'],

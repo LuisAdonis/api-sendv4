@@ -17,4 +17,4 @@ const ciudadSchema = new Schema<ICiudad>({
     timestamps: true,
 },);
 
-export default model<ICiudad>('Ciudad', ciudadSchema);
+export default model<ICiudad>('Ciudades', ciudadSchema);

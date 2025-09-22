@@ -3,6 +3,8 @@ import tienda from '../models/tienda';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { authorize } from '../middleware/authorize';
+import verifyToken from '../middleware/verifyToken';
 
 const storage = multer.diskStorage({
   destination: 'uploads/tiendas',
@@ -29,23 +31,64 @@ const upload = multer({ storage });
 const router = Router();
 
 
-router.post('/', checkFileField, upload.single('file'), async (req, res) => {
+router.get('city/:ciudad', async (req, res) => {
+  try {
+    const docs = await tienda.find({ ciudad: req.params.ciudad }).select("-__v");
+    res.json(docs);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+router.get('/', async (req, res) => {
+  try {
+    const docs = await tienda.find().select("-__v");
+    res.json(docs);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+router.get('/:id', async (req, res) => {
+  try {
+    const docs = await tienda.findById(req.params.id).select("-__v").populate('productos');
+    if (!docs) return res.status(404).json({ message: 'Not found' });
+    res.json(docs);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+router.post('/', checkFileField, upload.single('file'), verifyToken, authorize(['admin']), async (req, res) => {
   try {
     let fileUrl = null;
+    const updateData: any = { ...req.body };
 
     if (req.file) {
       const relativePath = `/uploads/${req.file.filename}`;
       fileUrl = `${req.protocol}://${req.get('host')}${relativePath}`;
+      updateData.logo = fileUrl;
     }
-    const doc = new tienda({ ...req.body, logo: fileUrl, });
+    const doc = new tienda(updateData);
     await doc.save();
     res.status(201).json(doc);
   } catch (err: any) {
-    res.status(500).json({ message: err });
+    if (err.name === 'ValidationError') {
+      return res.status(422).json({
+        message: 'Error de validación',
+        details: err.message,
+        errors: err.errors
+      });
+    }
+    if (err.code === 11000) {
+      return res.status(409).json({
+        message: 'El telefono o correo de tienda ya existe',
+        field: Object.keys(err.keyPattern)[0]
+      });
+    }
+    res.status(500).json({
+      message: 'Error interno del servidor'
+    });
   }
 });
-
-router.put('/:id', checkFileField, upload.single('file'), async (req, res) => {
+router.put('/:id', checkFileField, upload.single('file'), verifyToken, authorize(['admin']), async (req, res) => {
   try {
     let fileUrl = null;
     const updateData: any = { ...req.body };
@@ -77,13 +120,20 @@ router.put('/:id', checkFileField, upload.single('file'), async (req, res) => {
     const docs = await tienda.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!docs) return res.status(404).json({ message: 'Not found' });
     res.json(docs);
-  } catch (err) {
-    res.status(500).json({ message: err });
+  } catch (err: any) {
+    if (err.name === 'ValidationError') {
+      return res.status(422).json({
+        message: 'Error de validación',
+        details: err.message,
+        errors: err.errors
+      });
+    }
+    res.status(500).json({
+      message: 'Error interno del servidor'
+    });
   }
 });
-
-
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, authorize(['admin']), async (req, res) => {
   try {
     const docs = await tienda.findByIdAndDelete(req.params.id);
     if (!docs) return res.status(404).json({ message: 'Not found' });

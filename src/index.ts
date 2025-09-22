@@ -17,10 +17,6 @@ import storeRoutes from './routes/tienda';
 import productRoutes from './routes/producto';
 
 
-import cityPublicRoutes from './routes/ciudadPublica';
-import storePublicRoutes from './routes/tiendaPublica';
-import productPublicRoutes from './routes/productoPublica';
-
 dotenv.config();
 
 const app = express();
@@ -44,31 +40,28 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads/tiendas')
 app.get('/health', (_req, res) => {
   res.json({
     status: 'OK',
-    timestamp: new Date().toUTCString(),
+    timestamp: new Date().toLocaleString().toLocaleLowerCase(),
     cors: 'enabled',
     environment: process.env.NODE_ENV || 'development',
   });
 });
-app.use('/api/v1/city',cityPublicRoutes);
-app.use('/api/v1/store',storePublicRoutes);
-app.use('/api/v1/product',productPublicRoutes);
-app.use('/api/v1/users', userRoutes);
 
-app.use(verifyToken);
+
 app.use('/api/v1/store',storeRoutes);
 app.use('/api/v1/product',productRoutes);
 app.use('/api/v1/city',cityRoutes);
+app.use('/api/v1/users', userRoutes);
 
 
 
 app.use(corsErrorHandler);
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('❌ Unhandled error:', err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
-  });
-});
+// app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+//   console.error('❌ Unhandled error:', err);
+//   res.status(500).json({
+//     error: 'Internal Server Error',
+//     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+//   });
+// });
 
 
 const PORT = process.env.PORT || 3000;
@@ -79,7 +72,7 @@ mongoose
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`📄 API Docs: http://localhost:${PORT}/docs`);
+      console.log(`📄 API Docs: http://localhost:${PORT}/health`);
     });
   })
   .catch((err) => {

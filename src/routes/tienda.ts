@@ -84,7 +84,9 @@ router.post('/', checkFileField, upload.single('file'), verifyToken, authorize([
       });
     }
     res.status(500).json({
-      message: 'Error interno del servidor'
+      message:  err.message,
+      details: err.message,
+      errors: err.errors
     });
   }
 });
@@ -129,7 +131,9 @@ router.put('/:id', checkFileField, upload.single('file'), verifyToken, authorize
       });
     }
     res.status(500).json({
-      message: 'Error interno del servidor'
+      message: 'Error interno del servidor',
+       details: err.message,
+        errors: err.errors
     });
   }
 });

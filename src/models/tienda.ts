@@ -24,7 +24,7 @@ export interface ITienda extends Document {
   email: string;
   horario?: IHorarioTienda[];
   estado: EstadoTienda;
-  ciudad: Types.ObjectId;
+  ciudad_id: Types.ObjectId;
   tipo: string;
   logo_banner?: string;
   calificacion?: number;
@@ -40,12 +40,12 @@ const tiendaSchema = new Schema<ITienda>(
   {
     nombre: { type: String, required: true },
     direccion: { type: String, required: true },
-    logo: { type: String ,default:'none'},
+    logo: { type: String, default: 'none' },
     logo_banner: { type: String, default: 'none' },
     calificacion: { type: Number, default: 1.2 },
     latitud: { type: Number, required: true },
     longitud: { type: Number, required: true },
-    telefono: { type: String, required: true , unique: true },
+    telefono: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     estado: {
       type: String,
@@ -53,7 +53,7 @@ const tiendaSchema = new Schema<ITienda>(
       default: 'activa',
     },
     horario: { type: [horarioSchema], default: [] },
-    ciudad: { type: Schema.Types.ObjectId, ref: 'Ciudad', },
+    ciudad_id: { type: Schema.Types.ObjectId, ref: 'Ciudad', required: true },
     tipo: { type: String, default: 'none' },
     config_envio: {
       costo_envio: { type: Number, default: 0 },

@@ -16,5 +16,10 @@ const ciudadSchema = new Schema<ICiudad>({
     toObject: { virtuals: true },
     timestamps: true,
 },);
+ciudadSchema.virtual('tiendas', {
+  ref: 'Tienda',
+  localField: '_id',
+  foreignField: 'ciudad_id'
+});
 
 export default model<ICiudad>('Ciudades', ciudadSchema);

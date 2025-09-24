@@ -17,21 +17,37 @@ import storeRoutes from './routes/tienda';
 import productRoutes from './routes/producto';
 
 
+import { swaggerSpec } from "./config/swagger";
+import { apiReference } from "@scalar/express-api-reference";
+
+
+
 dotenv.config();
 
 const app = express();
 // const corsConfig = getCorsConfig();
 // app.use(cors(corsConfig));
 
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
-        console.log('✅ Preflight request handled');
-        res.status(200).end();
-        return;
-    }
-    next();
-});
+app.use(
+  "/docs",
+  apiReference({
+    spec: {
+      content: swaggerSpec,
+    },
+    theme: "saturn", // o "kepler", "mars", "default"
+    layout: "modern",
+  })
+);
+
+// app.use((req, res, next) => {
+//     res.header('Access-Control-Allow-Credentials', 'true');
+//     if (req.method === 'OPTIONS') {
+//         console.log('✅ Preflight request handled');
+//         res.status(200).end();
+//         return;
+//     }
+//     next();
+// });
 app.use(express.json());
 
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
@@ -46,9 +62,9 @@ app.get('/health', (_req, res) => {
 });
 
 
-app.use('/api/v1/store',storeRoutes);
-app.use('/api/v1/product',productRoutes);
-app.use('/api/v1/city',cityRoutes);
+app.use('/api/v1/store', storeRoutes);
+app.use('/api/v1/product', productRoutes);
+app.use('/api/v1/city', cityRoutes);
 app.use('/api/v1/users', userRoutes);
 
 

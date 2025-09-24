@@ -35,14 +35,55 @@ const upload = multer({ storage });
 const router = Router();
 
 
-router.get('city/:ciudad', async (req, res) => {
+/**
+ * @openapi
+ * /api/v1/store/city/{ciudad}:
+ *   get:
+ *     summary: Obtiene todas las tiendas de una ciudad
+ *     tags:
+ *       - Tiendas
+ *     parameters:
+ *       - name: ciudad
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lista de tiendas filtradas por ciudad
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Tienda'
+ */
+router.get('/city/:ciudad', async (req, res) => {
   try {
-    const docs = await tienda.find({ ciudad: req.params.ciudad }).select("-__v");
+    const docs = await tienda.find({ ciudad_id: req.params.ciudad }).select("-__v");
     res.json(docs);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+/**
+ * @openapi
+ * /api/v1/store/:
+ *   get:
+ *     summary: Obtiene todas las tiendas
+ *     tags:
+ *       - Tiendas
+ *     responses:
+ *       200:
+ *         description: Lista de tiendas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Tienda'
+ */
 router.get('/', async (req, res) => {
   try {
     const docs = await tienda.find().select("-__v");
@@ -51,6 +92,29 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+/**
+ * @openapi
+ * /api/v1/store/{id}:
+ *   get:
+ *     summary: Obtiene una tienda por ID
+ *     tags:
+ *       - Tiendas
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Tienda encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Tienda'
+ *       404:
+ *         description: Tienda no encontrada
+ */
 router.get('/:id', async (req, res) => {
   try {
     const docs = await tienda.findById(req.params.id).select("-__v").populate('productos');
@@ -60,6 +124,49 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+/**
+ * @openapi
+ * /api/v1/store/:
+ *   post:
+ *     summary: Crea una nueva tienda
+ *     tags:
+ *       - Tiendas
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *               direccion:
+ *                 type: string
+ *               telefono:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               ciudad_id:
+ *                 type: string
+ *               tipo:
+ *                 type: string
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Tienda creada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Tienda'
+ *       422:
+ *         description: Error de validación
+ *       409:
+ *         description: Telefono o correo duplicado
+ */
 router.post('/', checkFileField, upload.single('file'), verifyToken, authorize(['admin']), async (req, res) => {
   try {
     // let fileUrl = null;
@@ -76,24 +183,15 @@ router.post('/', checkFileField, upload.single('file'), verifyToken, authorize([
 
     const updateData: any = { ...req.body };
 
-    // 1. Guardar el documento para obtener el ID
     const doc = new tienda(updateData);
     await doc.save();
 
-    // 2. Si hay un archivo, moverlo y actualizar el documento
     if (req.file) {
-      // Ruta de origen (temporal) y de destino (final)
       const oldPath = req.file.path;
       const newDir = path.join(process.cwd(), 'uploads', 'tiendas', doc.id.toString());
       const newPath = path.join(newDir, req.file.filename);
-
-      // Crear el directorio de destino si no existe
       fs.mkdirSync(newDir, { recursive: true });
-
-      // Mover el archivo
       fs.renameSync(oldPath, newPath);
-
-      // Crear la nueva URL y actualizar el documento
       const newRelativePath = `/uploads/tiendas/${doc.id}/${req.file.filename}`;
       const fileUrl = `${req.protocol}://${req.get('host')}${newRelativePath}`;
       
@@ -124,6 +222,53 @@ router.post('/', checkFileField, upload.single('file'), verifyToken, authorize([
     });
   }
 });
+/**
+ * @openapi
+ * /api/v1/store/{id}:
+ *   put:
+ *     summary: Actualiza una tienda
+ *     tags:
+ *       - Tiendas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *               direccion:
+ *                 type: string
+ *               telefono:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               ciudad_id:
+ *                 type: string
+ *               tipo:
+ *                 type: string
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Tienda actualizada
+ *       404:
+ *         description: Tienda no encontrada
+ *       422:
+ *         description: Error de validación
+ *       409:
+ *         description: Telefono o correo duplicado
+ */
 router.put('/:id', checkFileField, upload.single('file'), verifyToken, authorize(['admin']), async (req, res) => {
   try {
     let fileUrl = null;
@@ -178,6 +323,28 @@ router.put('/:id', checkFileField, upload.single('file'), verifyToken, authorize
     });
   }
 });
+
+/**
+ * @openapi
+ * /api/v1/store/{id}:
+ *   delete:
+ *     summary: Elimina una tienda por ID
+ *     tags:
+ *       - Tiendas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Tienda eliminada
+ *       404:
+ *         description: Tienda no encontrada
+ */
 router.delete('/:id', verifyToken, authorize(['admin']), async (req, res) => {
   try {
     const docs = await tienda.findByIdAndDelete(req.params.id);

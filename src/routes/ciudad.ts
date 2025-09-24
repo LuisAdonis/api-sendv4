@@ -5,15 +5,56 @@ import verifyToken from '../middleware/verifyToken';
 
 const router = Router();
 
+/**
+ * @openapi
+ * /api/v1/city/:
+ *   get:
+ *     summary: Obtiene todas las ciudades
+ *     tags:
+ *       - Ciudades
+ *     responses:
+ *       200:
+ *         description: Lista de ciudades
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ciudad'
+ */
 router.get('/', async (req, res) => {
   try {
     const docs = await ciudad.find().select("-__v");
-    res.json(docs);
+    res.status(200).json(docs);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
+/**
+ * @openapi
+ * /api/v1/city/:
+ *   post:
+ *     summary: Crea una nueva ciudad
+ *     security:
+ *       - bearerAuth: []
+ *     tags:
+ *       - Ciudades
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CiudadInput'
+ *     responses:
+ *       201:
+ *         description: Ciudad creada exitosamente
+ *       409:
+ *         description: Ciudad duplicada
+ *       422:
+ *         description: Error de validación
+ *       500:
+ *         description: Error interno del servidor
+ */
 router.post('/', verifyToken, authorize(['admin']), async (req, res) => {
   try {
     const doc = new ciudad(req.body);
@@ -38,7 +79,38 @@ router.post('/', verifyToken, authorize(['admin']), async (req, res) => {
     });
   }
 });
-
+/**
+ * @openapi
+ * /api/v1/city/{id}:
+ *   put:
+ *     summary: Actualiza una ciudad por ID
+ *     security:
+ *       - bearerAuth: []
+ *     tags:
+ *       - Ciudades
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: 650fa9b9c8a1b2c3d4e5f678
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CiudadInput'
+ *     responses:
+ *       200:
+ *         description: Ciudad actualizada
+ *       404:
+ *         description: Ciudad no encontrada
+ *       422:
+ *         description: Error de validación
+ *       500:
+ *         description: Error interno del servidor
+ */
 router.put('/:id', verifyToken, authorize(['admin']), async (req, res) => {
   try {
     const docs = await ciudad.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -57,7 +129,30 @@ router.put('/:id', verifyToken, authorize(['admin']), async (req, res) => {
     });
   }
 });
-
+/**
+ * @openapi
+ * /api/v1/city/{id}:
+ *   delete:
+ *     summary: Elimina una ciudad por ID
+ *     security:
+ *       - bearerAuth: []
+ *     tags:
+ *       - Ciudades
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: 650fa9b9c8a1b2c3d4e5f678
+ *     responses:
+ *       200:
+ *         description: Ciudad eliminada
+ *       404:
+ *         description: Ciudad no encontrada
+ *       500:
+ *         description: Error interno del servidor
+ */
 router.delete('/:id', verifyToken, authorize(['admin']), async (req, res) => {
   try {
     const docs = await ciudad.findByIdAndDelete(req.params.id);

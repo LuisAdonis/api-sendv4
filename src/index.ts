@@ -34,8 +34,7 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads/productos')));
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads/tiendas')));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/health', (_req, res) => {
   res.json({

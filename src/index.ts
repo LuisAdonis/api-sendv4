@@ -25,8 +25,8 @@ import { apiReference } from "@scalar/express-api-reference";
 dotenv.config();
 
 const app = express();
-// const corsConfig = getCorsConfig();
-// app.use(cors(corsConfig));
+const corsConfig = getCorsConfig();
+app.use(cors(corsConfig));
 
 app.use(
   "/docs",
@@ -34,20 +34,20 @@ app.use(
     spec: {
       content: swaggerSpec,
     },
-    theme: "saturn", // o "kepler", "mars", "default"
+    theme: "saturn",
     layout: "modern",
   })
 );
 
-// app.use((req, res, next) => {
-//     res.header('Access-Control-Allow-Credentials', 'true');
-//     if (req.method === 'OPTIONS') {
-//         console.log('✅ Preflight request handled');
-//         res.status(200).end();
-//         return;
-//     }
-//     next();
-// });
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+        console.log('✅ Preflight request handled');
+        res.status(200).end();
+        return;
+    }
+    next();
+});
 app.use(express.json());
 
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
@@ -70,13 +70,13 @@ app.use('/api/v1/users', userRoutes);
 
 
 app.use(corsErrorHandler);
-// app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-//   console.error('❌ Unhandled error:', err);
-//   res.status(500).json({
-//     error: 'Internal Server Error',
-//     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
-//   });
-// });
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('❌ Unhandled error:', err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+  });
+});
 
 
 const PORT = process.env.PORT || 3000;

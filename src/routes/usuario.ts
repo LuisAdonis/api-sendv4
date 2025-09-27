@@ -33,10 +33,14 @@ const router = Router();
  *       404:
  *         description: Usuario no encontrado
  */
-router.get('/perfil', verifyToken, async (req:AuthRequest, res) => {
+router.get('/perfil',verifyToken,  async (req:AuthRequest, res) => {
   const docs= await usuario.findOne({uid:req.user.uid})
     if (!docs) return res.status(404).json({ message: 'Not found' });
-  res.json({ message: 'Perfil accesible',rol:docs.rol,t:docs.activo,tt:docs.uid});
+     const respuesta = {
+      ...docs.toObject(),
+       ultimoAcceso:Date.now,configuraciones:{},permisos:[],
+    };
+  res.json(respuesta);
 });
 /**
  * @openapi

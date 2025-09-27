@@ -169,18 +169,6 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', checkFileField, upload.single('file'), verifyToken, authorize(['admin']), async (req, res) => {
   try {
-    // let fileUrl = null;
-    // const updateData: any = { ...req.body };
-
-    // if (req.file) {
-    //   const relativePath = `/uploads/${req.file.filename}`;
-    //   fileUrl = `${req.protocol}://${req.get('host')}${relativePath}`;
-    //   updateData.logo = fileUrl;
-    // }
-    // const doc = new tienda(updateData);
-    // await doc.save();
-    // res.status(201).json(doc);
-
     const updateData: any = { ...req.body };
 
     const doc = new tienda(updateData);

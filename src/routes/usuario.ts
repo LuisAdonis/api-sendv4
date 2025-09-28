@@ -38,7 +38,15 @@ router.get('/perfil',verifyToken,  async (req:AuthRequest, res) => {
     if (!docs) return res.status(404).json({ message: 'Not found' });
      const respuesta = {
       ...docs.toObject(),
-       ultimoAcceso:Date.now,configuraciones:{},permisos:[],
+       ultimo_acceso:new Date(),
+       configuraciones:{},
+      //  permisos:[
+        // 'view_ciudad',
+        // 'view_producto',
+        // 'view_usuario',
+        // 'view_config',
+        // 'view_tienda'
+      //  ],
     };
   res.json(respuesta);
 });

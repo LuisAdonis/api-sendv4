@@ -9,6 +9,7 @@ export interface IUsuario extends Document {
   rol: UserRole;
   activo: boolean;
   fecha_creacion: Date;
+  permisos: string[];   
 }
 
 const userSchema = new Schema<IUsuario>({
@@ -18,6 +19,7 @@ const userSchema = new Schema<IUsuario>({
   rol: { type: String, enum: ['cliente', 'repartidor', 'admin'], default: 'cliente' },
   activo: { type: Boolean, default: true },
   fecha_creacion: { type: Date, default: Date.now },
+  permisos: [{ type: String }],   // 👈 array de strings
 },{
   timestamps: true,
 });

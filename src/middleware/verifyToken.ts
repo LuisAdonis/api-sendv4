@@ -9,12 +9,19 @@ export default function verifyToken(req: AuthRequest, res: Response, next: NextF
   if (!token) {
     return res.status(401).json({ message: 'Missing token' });
   }
-
   const payload = auth.verifyIdToken(token)
     .then((decodedToken) => {
       const uid = decodedToken.uid;
       // (req as any).user = decodedToken;
-      req.user = decodedToken; 
+      const issuedAt = new Date(decodedToken.iat * 1000); 
+      const expiresAt = new Date(decodedToken.exp * 1000); 
+
+      console.log("UID:", uid);
+      console.log("Emitido en:", issuedAt);
+      console.log("Expira en:", expiresAt);
+
+      req.user = decodedToken;
+
       next();
     })
     .catch((error: any) => {

@@ -15,14 +15,14 @@ export interface IProducto extends Document {
 
 export interface IHorarioDisponible {
   dia: string;
-  desde: string;
-  hasta: string;
+ apertura: string;
+  cierre: string;
 }
 const horarioSchema = new Schema<IHorarioDisponible>(
   {
     dia: { type: String, required: true },
-    desde: { type: String, required: true },
-    hasta: { type: String, required: true }
+    apertura: { type: String, required: true },
+    cierre: { type: String, required: true }
   },
   { _id: false }
 );

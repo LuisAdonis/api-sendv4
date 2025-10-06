@@ -21,6 +21,46 @@ const firebaseAuthErrors: Record<string, string> = {
   "auth/too-many-requests": "Demasiadas solicitudes. Inténtalo más tarde.",
 };
 const router = Router();
+
+
+/**
+ * Función auxiliar para listar todos los usuarios de Firebase Auth
+ */
+const listAllFirebaseUsers = async (): Promise<any[]> => {
+  const allUsers: any[] = [];
+  
+  const listUsers = async (nextPageToken?: string): Promise<void> => {
+    try {
+      const listUsersResult = await auth.listUsers(1000, nextPageToken);
+      
+      listUsersResult.users.forEach((userRecord) => {
+        allUsers.push({
+          uid: userRecord.uid,
+          email: userRecord.email,
+          displayName: userRecord.displayName,
+          photoURL: userRecord.photoURL,
+          disabled: userRecord.disabled,
+          emailVerified: userRecord.emailVerified,
+          phoneNumber: userRecord.phoneNumber,
+          creationTime: userRecord.metadata.creationTime,
+          lastSignInTime: userRecord.metadata.lastSignInTime,
+        });
+      });
+      
+      if (listUsersResult.pageToken) {
+        await listUsers(listUsersResult.pageToken);
+      }
+    } catch (error) {
+      console.error('Error listing users:', error);
+      throw error;
+    }
+  };
+  
+  await listUsers();
+  return allUsers;
+};
+
+
 /**
  * @openapi
  * /api/v1/users/perfil:
@@ -82,6 +122,142 @@ router.get('/perfil', verifyToken, async (req: AuthRequest, res) => {
 router.get('/admin/dashboard', verifyToken, authorize(['admin']), (req, res) => {
   res.json({ message: 'Bienvenido admin' });
 });
+
+
+/**
+ * @openapi
+ * /api/v1/users/firebase/all:
+ *   get:
+ *     summary: Lista todos los usuarios de Firebase Auth
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios de Firebase
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: number
+ *                 usuarios:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Error al obtener usuarios
+ */
+router.get('/firebase/all', verifyToken, authorize(['admin']), async (req, res) => {
+  try {
+    const firebaseUsers = await listAllFirebaseUsers();
+    res.json({
+      total: firebaseUsers.length,
+      usuarios: firebaseUsers
+    });
+  } catch (error: any) {
+    console.error('Error al listar usuarios de Firebase:', error);
+    res.status(500).json({
+      message: 'Error al obtener usuarios de Firebase',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @openapi
+ * /api/v1/users/sync:
+ *   post:
+ *     summary: Sincroniza usuarios de Firebase Auth con la base de datos local
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Usuarios sincronizados exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 insertados:
+ *                   type: number
+ *                 errores:
+ *                   type: number
+ *       500:
+ *         description: Error en la sincronización
+ */
+router.post('/sync', verifyToken, authorize(['admin']), async (req, res) => {
+  try {
+    const firebaseUsers = await listAllFirebaseUsers();
+    let insertados = 0;
+    let errores = 0;
+    const detalles: any[] = [];
+
+    for (const firebaseUser of firebaseUsers) {
+      try {
+        // Verificar si el usuario ya existe en la BD
+        const existeUsuario = await usuario.findOne({ uid: firebaseUser.uid });
+        
+        if (!existeUsuario) {
+          // Crear nuevo usuario en la BD
+          const nuevoUsuario = new usuario({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            nombre: firebaseUser.displayName || 'Sin nombre',
+            rol: 'cliente',
+            activo: !firebaseUser.disabled,
+            permisos: []
+          });
+          
+          await nuevoUsuario.save();
+          insertados++;
+          detalles.push({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            status: 'insertado'
+          });
+        } else {
+          detalles.push({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            status: 'ya_existe'
+          });
+        }
+      } catch (error: any) {
+        errores++;
+        detalles.push({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          status: 'error',
+          error: error.message
+        });
+        console.error(`Error al insertar usuario ${firebaseUser.uid}:`, error);
+      }
+    }
+
+    res.json({
+      message: 'Sincronización completada',
+      total_firebase: firebaseUsers.length,
+      insertados,
+      errores,
+      detalles
+    });
+  } catch (error: any) {
+    console.error('Error en la sincronización:', error);
+    res.status(500).json({
+      message: 'Error al sincronizar usuarios',
+      error: error.message
+    });
+  }
+});
+
+
 /**
  * @openapi
  * /api/v1/users/register:
@@ -141,33 +317,33 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 router.post('/', verifyToken, authorize(['admin']), async (req, res) => {
-
-  const payload = auth.createUser({
-    email: req.body.email,
-    displayName: req.body.nombre,
-    password: req.body.password,
-  })
-    .then(async (userRecord) => {
-      console.log('Successfully created new user:', userRecord.uid);
-      const doc = new usuario({
-        nombre: userRecord.displayName,
-        uid: userRecord.uid,
-        email: userRecord.email,
-        rol: 'cliente',
-        activo: false,
-        permisos: req.body.permisos,
-      });
-      await doc.save();
-      res.status(201).json(doc);
-    })
-    .catch((error) => {
-      console.log('Error creating new user:', error);
-      const mensaje = firebaseAuthErrors[error.code] || "Error desconocido al crear usuario";
-      return res.status(422).json({
-        message: mensaje,
-        code: error.code,
-      });
+ try {
+    const userRecord = await auth.createUser({
+      email: req.body.email,
+      displayName: req.body.nombre,
+      password: req.body.password,
     });
+
+    console.log('Successfully created new user:', userRecord.uid);
+    const doc = new usuario({
+      nombre: userRecord.displayName,
+      uid: userRecord.uid,
+      email: userRecord.email,
+      rol: req.body.rol || 'cliente',
+      activo: req.body.activo !== undefined ? req.body.activo : false,
+      permisos: req.body.permisos || [],
+    });
+    
+    await doc.save();
+    res.status(201).json(doc);
+  } catch (error: any) {
+    console.log('Error creating new user:', error);
+    const mensaje = firebaseAuthErrors[error.code] || "Error desconocido al crear usuario";
+    return res.status(422).json({
+      message: mensaje,
+      code: error.code,
+    });
+  }
 });
 
 router.put('/:id', verifyToken, authorize(['admin']), async (req, res) => {
@@ -197,24 +373,26 @@ router.put('/:id', verifyToken, authorize(['admin']), async (req, res) => {
     });
   }
 });
-
 router.delete('/:id', verifyToken, authorize(['admin']), async (req, res) => {
-  const payload = auth.deleteUser(req.params.id)
-    .then(async () => {
-      console.log('Successfully deleted user');
-      const docs = await usuario.findOneAndDelete({ uid: req.params.id });
-      if (!docs) return res.status(404).json({ message: 'Not found' });
-      res.json({ message: 'Deleted' });
-
-    })
-    .catch(async (error) => {
-      console.log('Error deleting user:', error);
-      const docs = await usuario.findOneAndDelete({ uid: req.params.id });
-      const mensaje = firebaseAuthErrors[error.code] || "Error desconocido al crear usuario";
-      return res.status(422).json({
-        message: mensaje,
-        code: error.code,
-      });
+  try {
+    await auth.deleteUser(req.params.id);
+    console.log('Successfully deleted user from Firebase');
+    
+    const docs = await usuario.findOneAndDelete({ uid: req.params.id });
+    if (!docs) return res.status(404).json({ message: 'Not found' });
+    
+    res.json({ message: 'Deleted' });
+  } catch (error: any) {
+    console.log('Error deleting user:', error);
+    
+    // Intentar eliminar de la BD aunque falle en Firebase
+    const docs = await usuario.findOneAndDelete({ uid: req.params.id });
+    
+    const mensaje = firebaseAuthErrors[error.code] || "Error desconocido al eliminar usuario";
+    return res.status(422).json({
+      message: mensaje,
+      code: error.code,
     });
-});
+  }
+})
 export default router;

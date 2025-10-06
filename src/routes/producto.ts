@@ -58,7 +58,15 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
+router.get('/tienda/:id', async (req, res) => {
+  try {
+    const docs = await producto.find({ tienda_id: req.params.id }).select("-__v");;
+    if (!docs) return res.status(404).json({ message: 'Not found' });
+    res.json(docs);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 /**
  * @openapi
  * /api/v1/product/{id}:
@@ -136,7 +144,7 @@ router.get('/:id', async (req, res) => {
  *       409:
  *         description: Producto duplicado
  */
-router.post('/', checkFileField, upload.single('file'), verifyToken, authorize(['admin']), async (req, res) => {
+router.post('/', checkFileField, upload.single('file'),  async (req, res) => {
   try {
     let fileUrl = null;
     const doc = new producto({ ...req.body, imagen_url: fileUrl, });
@@ -165,7 +173,9 @@ router.post('/', checkFileField, upload.single('file'), verifyToken, authorize([
     }
     if (err.code === 11000) {
       return res.status(409).json({
-        message: 'El nombre de este producto ya existe',
+        message: 'El '+
+         Object.keys(err.keyPattern)[0]
+        +' de este producto ya existe',
         details: err.message,
         field: Object.keys(err.keyPattern)[0]
       });

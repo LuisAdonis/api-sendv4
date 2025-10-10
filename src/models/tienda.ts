@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, model, Document, Types, Model } from 'mongoose';
 export type EstadoTienda = 'activa' | 'cerrada' | 'suspendida' | 'eliminada';
 
 export interface IHorarioTienda {
@@ -14,7 +14,15 @@ const horarioSchema = new Schema<IHorarioTienda>(
   },
   { _id: false }
 );
+export interface ITiendaModel extends Model<ITienda> {
+  actualizarEstadosPorHorario(): Promise<{
+    actualizadas: number;
+    total: number;
+  }>;
+}
+
 export interface ITienda extends Document {
+  
   nombre: string;
   logo: string;
   direccion: string;
@@ -33,6 +41,7 @@ export interface ITienda extends Document {
     tiempo_preparacion: number;
     zonas_cobertura: string[];
   };
+  estaAbierta(): boolean;
 
 }
 
@@ -65,6 +74,59 @@ const tiendaSchema = new Schema<ITienda>(
   toObject: { virtuals: true },
   timestamps: true,
 });
+
+tiendaSchema.methods.estaAbierta = function(): boolean {
+  if (!this.horario || this.horario.length === 0) {
+    return false;
+  }
+
+  const ahora = new Date();
+  const diasSemana = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const diaActual = diasSemana[ahora.getDay()];
+  
+  const horarioHoy = this.horario.find(
+    (h: IHorarioTienda) => h.dia.toLowerCase() === diaActual
+  );
+
+  if (!horarioHoy) {
+    return false;
+  }
+
+  const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
+  const [aperturaH, aperturaM] = horarioHoy.apertura.split(':').map(Number);
+  const [cierreH, cierreM] = horarioHoy.cierre.split(':').map(Number);
+  
+  const apertura = aperturaH * 60 + aperturaM;
+  const cierre = cierreH * 60 + cierreM;
+
+  return horaActual >= apertura && horaActual < cierre;
+};
+
+tiendaSchema.statics.actualizarEstadosPorHorario = async function() {
+  const tiendas = await this.find({ 
+    estado: { $in: ['activa', 'cerrada'] } // Solo actualiza activas/cerradas, no suspendidas
+  });
+
+  let actualizadas = 0;
+
+  for (const tienda of tiendas) {
+    const deberiaEstarAbierta = tienda.estaAbierta();
+    const estadoActual = tienda.estado;
+
+    if (deberiaEstarAbierta && estadoActual === 'cerrada') {
+      tienda.estado = 'activa';
+      await tienda.save();
+      actualizadas++;
+    } else if (!deberiaEstarAbierta && estadoActual === 'activa') {
+      tienda.estado = 'cerrada';
+      await tienda.save();
+      actualizadas++;
+    }
+  }
+
+  return { actualizadas, total: tiendas.length };
+};
+
 tiendaSchema.virtual('productos', {
   ref: 'Producto',
   localField: '_id',
@@ -73,4 +135,5 @@ tiendaSchema.virtual('productos', {
 
 tiendaSchema.index({ latitud: 1, longitud: 1 });
 
-export default model<ITienda>('Tienda', tiendaSchema);
+const TiendaModel= model<ITienda,ITiendaModel>('Tienda', tiendaSchema);
+export default TiendaModel;

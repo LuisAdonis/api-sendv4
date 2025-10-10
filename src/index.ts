@@ -19,6 +19,7 @@ import productRoutes from './routes/producto';
 
 import { swaggerSpec } from "./config/swagger";
 import { apiReference } from "@scalar/express-api-reference";
+import { iniciarCronTiendas } from './cron/tiendas.cron';
 
 
 
@@ -88,6 +89,8 @@ mongoose
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📄 API Docs: http://localhost:${PORT}/health`);
+          iniciarCronTiendas();
+
     });
   })
   .catch((err) => {

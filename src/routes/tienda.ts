@@ -35,6 +35,23 @@ const upload = multer({ storage });
 const router = Router();
 
 
+router.get('/datos', async (req, res) => {
+  try {
+    const resultado = await tienda.actualizarEstadosPorHorario();
+    res.json({
+      success: true,
+      message: 'Estados actualizados',
+      data: resultado
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: 'Error al actualizar estados',
+      error
+    });
+  }
+});
+
 /**
  * @openapi
  * /api/v1/store/city/{ciudad}:
@@ -182,7 +199,7 @@ router.post('/', checkFileField, upload.single('file'), verifyToken, authorize([
       fs.renameSync(oldPath, newPath);
       const newRelativePath = `/uploads/tiendas/${doc.id}/${req.file.filename}`;
       const fileUrl = `${req.protocol}://${req.get('host')}${newRelativePath}`;
-      
+
       doc.logo = fileUrl;
       await doc.save();
     }
@@ -276,7 +293,7 @@ router.put('/:id', checkFileField, upload.single('file'), verifyToken, authorize
       try {
         const filename = path.basename(oldDoc.logo);
 
-        const oldPath = path.join(process.cwd(), 'uploads', 'tiendas',oldDoc.id, filename);
+        const oldPath = path.join(process.cwd(), 'uploads', 'tiendas', oldDoc.id, filename);
 
         if (fs.existsSync(oldPath)) {
           fs.unlinkSync(oldPath);
@@ -297,7 +314,7 @@ router.put('/:id', checkFileField, upload.single('file'), verifyToken, authorize
         errors: err.errors
       });
     }
-     if (err.code === 11000) {
+    if (err.code === 11000) {
       return res.status(409).json({
         message: 'El telefono o correo de tienda ya existe',
         details: err.message,
@@ -337,17 +354,52 @@ router.delete('/:id', verifyToken, authorize(['admin']), async (req, res) => {
   try {
     const docs = await tienda.findByIdAndDelete(req.params.id);
     if (!docs) return res.status(404).json({ message: 'Not found' });
-     try {
-        const oldPath = path.join(process.cwd(), 'uploads', 'tiendas',docs.id);
-        if (fs.existsSync(oldPath)) {
-          fs.rmSync(oldPath, { recursive: true, force: true });
-        }
-      } catch (e) {
-        console.warn('No se pudo eliminar el directorio de la tienda:', e);
+    try {
+      const oldPath = path.join(process.cwd(), 'uploads', 'tiendas', docs.id);
+      if (fs.existsSync(oldPath)) {
+        fs.rmSync(oldPath, { recursive: true, force: true });
       }
+    } catch (e) {
+      console.warn('No se pudo eliminar el directorio de la tienda:', e);
+    }
     res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/verificar/:id', async (req, res) => {
+  try {
+    const docs = await tienda.findById(req.params.id);
+
+    if (!docs) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tienda no encontrada'
+      });
+    }
+
+    const estaAbierta = docs.estaAbierta();
+
+    res.json({
+      success: true,
+      data: {
+        tienda_id: docs._id,
+        nombre: docs.nombre,
+        estado: docs.estado,
+        estaAbierta,
+        horarioHoy: docs.horario?.find(h => {
+          const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+          return h.dia.toLowerCase() === dias[new Date().getDay()];
+        })
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al verificar estado',
+      error
+    });
   }
 });
 

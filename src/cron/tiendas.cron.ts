@@ -5,13 +5,12 @@ export const iniciarCronTiendas = () => {
   // Se ejecuta cada 15 minutos
   cron.schedule('*/15 * * * *', async () => {
     try {
-      console.log('🕐 Actualizando estados de tiendas...');
+      console.log(`Actualizando estados de tiendas... ${new Date().toISOString()}`);
       const resultado = await TiendaModel.actualizarEstadosPorHorario();
-      console.log(`✅ ${resultado.actualizadas} tiendas actualizadas de ${resultado.total}`);
+      console.log(`${resultado.actualizadas} tiendas actualizadas de ${resultado.total}`);
     } catch (error) {
-      console.error('❌ Error al actualizar estados de tiendas:', error);
+      console.error(`Error al actualizar estados de tiendas: ${error}`);
     }
   });
-
-  console.log('✅ Cron de tiendas iniciado');
+  console.log('Cron de tiendas iniciado');
 };

@@ -144,7 +144,7 @@ router.get('/:id', async (req, res) => {
  *       409:
  *         description: Producto duplicado
  */
-router.post('/', checkFileField, upload.single('file'),  async (req, res) => {
+router.post('/', checkFileField, upload.single('file'), verifyToken, authorize(['admin']), async (req, res) => {
   try {
     let fileUrl = null;
     const doc = new producto({ ...req.body, imagen_url: fileUrl, });

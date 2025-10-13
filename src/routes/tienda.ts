@@ -35,7 +35,7 @@ const upload = multer({ storage });
 const router = Router();
 
 
-router.get('/datos', async (req, res) => {
+router.get('/actualiza-estados', async (req, res) => {
   try {
     const resultado = await tienda.actualizarEstadosPorHorario();
     res.json({
@@ -368,39 +368,39 @@ router.delete('/:id', verifyToken, authorize(['admin']), async (req, res) => {
   }
 });
 
-router.get('/verificar/:id', async (req, res) => {
-  try {
-    const docs = await tienda.findById(req.params.id);
+// router.get('/verificar/:id', async (req, res) => {
+//   try {
+//     const docs = await tienda.findById(req.params.id);
 
-    if (!docs) {
-      return res.status(404).json({
-        success: false,
-        message: 'Tienda no encontrada'
-      });
-    }
+//     if (!docs) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Tienda no encontrada'
+//       });
+//     }
 
-    const estaAbierta = docs.estaAbierta();
+//     const estaAbierta = docs.estaAbierta();
 
-    res.json({
-      success: true,
-      data: {
-        tienda_id: docs._id,
-        nombre: docs.nombre,
-        estado: docs.estado,
-        estaAbierta,
-        horarioHoy: docs.horario?.find(h => {
-          const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-          return h.dia.toLowerCase() === dias[new Date().getDay()];
-        })
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error al verificar estado',
-      error
-    });
-  }
-});
+//     res.json({
+//       success: true,
+//       data: {
+//         tienda_id: docs._id,
+//         nombre: docs.nombre,
+//         estado: docs.estado,
+//         estaAbierta,
+//         horarioHoy: docs.horario?.find(h => {
+//           const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+//           return h.dia.toLowerCase() === dias[new Date().getDay()];
+//         })
+//       }
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: 'Error al verificar estado',
+//       error
+//     });
+//   }
+// });
 
 export default router;

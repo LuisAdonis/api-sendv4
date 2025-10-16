@@ -8,7 +8,7 @@ import { authorize } from '../middleware/authorize';
 
 const storage = multer.diskStorage({
   destination: (req: Request, file, cb) => {
-    const storeId = req.params.id;
+    const storeId = req.body.tienda_id;
     const dest = storeId ? `uploads/producto/${storeId}` : 'uploads/producto/temp';
     fs.mkdirSync(dest, { recursive: true });
 
@@ -173,9 +173,9 @@ router.post('/', checkFileField, upload.single('file'), verifyToken, authorize([
     }
     if (err.code === 11000) {
       return res.status(409).json({
-        message: 'El '+
-         Object.keys(err.keyPattern)[0]
-        +' de este producto ya existe',
+        message: 'El ' +
+          Object.keys(err.keyPattern)[0]
+          + ' de este producto ya existe',
         details: err.message,
         field: Object.keys(err.keyPattern)[0]
       });
@@ -240,11 +240,10 @@ router.put('/:id', checkFileField, upload.single('file'), verifyToken, authorize
     let fileUrl = null;
     const updateData: any = { ...req.body };
 
-
     if (req.file) {
       const newRelativePath = `/uploads/producto/${updateData.tienda_id}/${req.file.filename}`;
       fileUrl = `${req.protocol}://${req.get('host')}${newRelativePath}`;
-      updateData.logo = fileUrl;
+      updateData.imagen_url = fileUrl;
 
     }
     const oldDoc = await producto.findById(req.params.id);

@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { authorize } from '../middleware/authorize';
 import verifyToken from '../middleware/verifyToken';
+import { DateTime } from 'luxon';
 
 const storage = multer.diskStorage({
   destination: (req: Request, file, cb) => {
@@ -402,5 +403,86 @@ router.delete('/:id', verifyToken, authorize(['admin']), async (req, res) => {
 //     });
 //   }
 // });
+
+// src/routes/tienda.ts
+
+/**
+ * @openapi
+ * /api/v1/store/{id}/status:
+ *   get:
+ *     summary: Verifica estado actual de una tienda
+ *     tags:
+ *       - Tiendas
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Estado de la tienda
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tienda_id:
+ *                   type: string
+ *                 nombre:
+ *                   type: string
+ *                 estado_db:
+ *                   type: string
+ *                 deberia_estar_abierta:
+ *                   type: boolean
+ *                 hora_local:
+ *                   type: string
+ *                 timezone:
+ *                   type: string
+ *                 horario_hoy:
+ *                   type: object
+ *                 proxima_apertura:
+ *                   type: object
+ */
+router.get('/:id/status', async (req, res) => {
+  try {
+    const docs = await tienda.findById(req.params.id);
+
+    if (!docs) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tienda no encontrada'
+      });
+    }
+
+    const estaAbierta = docs.estaAbierta();
+    const horaLocal = DateTime.now().setZone(docs.timezone);
+    const horarioHoy = docs.getHorarioDelDia();
+    const proximaApertura = docs.getProximaApertura();
+
+    res.json({
+      success: true,
+      data: {
+        tienda_id: docs._id,
+        nombre: docs.nombre,
+        estado_db: docs.estado,
+        deberia_estar_abierta: estaAbierta,
+        hora_local: horaLocal.toFormat('yyyy-MM-dd HH:mm:ss'),
+        timezone: docs.timezone,
+        dia_actual: horaLocal.toFormat('cccc', { locale: 'es' }),
+        horario_hoy: horarioHoy || null,
+        proxima_apertura: proximaApertura,
+        inconsistencia: (docs.estado === 'activa' && !estaAbierta) || 
+                       (docs.estado === 'cerrada' && estaAbierta)
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al verificar estado',
+      error: error.message
+    });
+  }
+});
 
 export default router;

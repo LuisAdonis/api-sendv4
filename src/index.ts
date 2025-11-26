@@ -15,6 +15,7 @@ import userRoutes from './routes/usuario';
 import cityRoutes from './routes/ciudad';
 import storeRoutes from './routes/tienda';
 import productRoutes from './routes/producto';
+import zonaRoutes from './routes/zona';
 
 
 import { swaggerSpec } from "./config/swagger";
@@ -41,13 +42,13 @@ app.use(
 );
 
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
-        console.log('✅ Preflight request handled');
-        res.status(200).end();
-        return;
-    }
-    next();
+  res.header('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    console.log('✅ Preflight request handled');
+    res.status(200).end();
+    return;
+  }
+  next();
 });
 app.use(express.json());
 
@@ -66,6 +67,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/v1/store', storeRoutes);
 app.use('/api/v1/product', productRoutes);
 app.use('/api/v1/city', cityRoutes);
+app.use('/api/v1/zona', zonaRoutes);
 app.use('/api/v1/users', userRoutes);
 
 
@@ -89,7 +91,7 @@ mongoose
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📄 API Docs: http://localhost:${PORT}/health`);
-          iniciarCronTiendas();
+      iniciarCronTiendas();
 
     });
   })
